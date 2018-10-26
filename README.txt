@@ -1,4 +1,4 @@
-so far, along with this project... this is the only thing you need to run
+so far, along with my shit... this is the only thing you need to run
 apt-get install libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-vaapi
 
 for raspberry pi, you need a special library to make it work...

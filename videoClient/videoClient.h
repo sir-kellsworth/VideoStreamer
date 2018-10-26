@@ -21,7 +21,6 @@
 #include <gst/gstpipeline.h>
 #include <Socket.h>
 #include <vector>
-#include <useful.h>
 
 #include "configReader.h"
 #include "videoStreamer_global.h"

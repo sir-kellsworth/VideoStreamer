@@ -15,7 +15,6 @@
 
 #include "videoServer.h"
 
-using namespace logger;
 using namespace videoStreamer;
 
 VideoServer::VideoServer(std::string configFile){
@@ -43,10 +42,10 @@ VideoServer::VideoServer(std::string configFile){
 			if(devices[i].deviceType == VIDEO){
 				int ret = system(std::string("ls " + devices[i].source).c_str());
 		    		if(ret == 0){
-		        		LOG_I(LOG_TAG,"Good news, everybody! I found the " + devices[i].name + " camera!",true);
+		        		std::cout << "Good news, everybody! I found the " << devices[i].name << " camera!" << std::endl;
 					devices[i].exists = true;
 		    		}else{
-		        		LOG_ERR(LOG_TAG,"Sweet File-not-found of Puget Sound! Cant find the " + devices[i].name + " device. You should probably check to see if it is plugged in.",true);
+		        		std::cout << "Sweet File-not-found of Puget Sound! Cant find the " << devices[i].name << " device. You should probably check to see if it is plugged in." << std::endl;
 					devices[i].exists = false;
 				}
 			}
@@ -54,7 +53,7 @@ VideoServer::VideoServer(std::string configFile){
     	}else{
         	int ret = system(std::string("ls /dev/video0").c_str());
             		if(ret == 0){
-                		LOG_I(LOG_TAG,"Good news, everybody! I found the default camera!",true);
+                		std::cout << "Good news, everybody! I found the default camera!" << std::endl;
 				videoStreamer::Device device;
 				device.name = "default";
 				device.source = "/dev/video0";
@@ -63,23 +62,23 @@ VideoServer::VideoServer(std::string configFile){
 				device.playing = false;
 				devices.push_back(device);
             		}else{
-                		LOG_I(LOG_TAG,"Sweet File-not-found of Puget Sound! Cant find the default device. You should probably check to see if it is plugged in.",true);
+                		std::cout << "Sweet File-not-found of Puget Sound! Cant find the default device. You should probably check to see if it is plugged in." << std::endl;
             		}
-        	LOG_W(LOG_TAG,"missig config file! Please put one at " + configFile,true);
+        	std::cout << "missig config file! Please put one at " << configFile << std::endl;
 	}
 
 	for(int i = 0; i < devices.size(); i++){
-		LOG_I(LOG_TAG,"using " + devices[i].source + " as device " + std::to_string(i),true);
+		std::cout << "using " << devices[i].source << " as device " << i << std::endl;
 	}
 
 	connected = false;
 	control = new Socket(CONTROL_PORT);
 
-	LOG_I(LOG_TAG,"setup sockets",true);
+	std::cout << "setup sockets" << std::endl;
 }
 
 void VideoServer::run(){
-	LOG_I(LOG_TAG,"Listening for connection");
+	std::cout << "Listening for connection" << std::endl;
 
 	Message message;
 	std::string sender;
@@ -90,7 +89,7 @@ void VideoServer::run(){
 				std::cout << "message from " << sender << std::endl;
 				onMessage(&message,sender);
 			}else{
-				LOG_W(LOG_TAG,"GOT BAD MESSAGE",true);
+				std::cout << "GOT BAD MESSAGE" << std::endl;
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -103,7 +102,7 @@ void VideoServer::onMessage(Message *message,std::string sender){
 	case INIT:{
 		responce.type = INIT;
 		responce.length = 0;
-		LOG_I(LOG_TAG,"Connected to " + sender,true);
+		std::cout << "Connected to " << sender << std::endl;
 		connected = true;
 	break;
 	}

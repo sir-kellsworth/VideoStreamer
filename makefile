@@ -4,7 +4,7 @@ OPTIMIZE	= -O2 -DSUPPORT_LH7 -DMKSTEMP
 PKG-CONFIG	= $(pkg-config --cflags glib-2.0)
 INCLUDE		= -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/opt/project-remoteVideo/shared -I/usr/include/glib-2.0 -I/usr/lib/arm-linux-gnueabihf/glib-2.0/include
 CFLAGS		= -std=c++11 -Winline -pipe -g $(INCLUDE)
-LDLIBS		= -lpthread -lUseful -lCRC -lSocket -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0
+LDLIBS		= -lpthread -lSocket -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0
 
 all: VideoClient.so videoServer.so
 

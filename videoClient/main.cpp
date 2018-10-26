@@ -16,8 +16,6 @@
 #include <string>
 #include <chrono>
 
-#include <useful.h>
-
 #include "videoClient.h"
 #include "videoStreamer_global.h"
 
@@ -100,7 +98,7 @@ void onCommand(std::string command){
 		client->updateSettings(type,setting);
 	}else if(commandsplit[0] == "status"){
 		//just repeat what devices are available
-		logger::LOG_I("VideoClient","available devices",true);
+		std::cout << "VideoClient","available devices" << std::endl;
 		for(std::string feed : feeds){
 			std::cout << "\t" << feed << std::endl;
 		}
@@ -119,12 +117,12 @@ int main(int argc,char *argv[]){
 	client->run();
 
 	if(!client->requestList(feeds)){
-		logger::LOG_I("VideoClient","no video streams? server probably isnt setup right",true);
+		std::cout << "VideoClient","no video streams? server probably isnt setup right" << std::endl;
 		client->kill();
 		exit(-1);
 	}
 
-	logger::LOG_I("VideoClient","available devices",true);
+	std::cout << "VideoClient","available devices" << std::endl;
 	for(std::string feed : feeds){
 		std::cout << "\t" << feed << std::endl;
 	}
