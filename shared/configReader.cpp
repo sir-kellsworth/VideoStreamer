@@ -1,6 +1,5 @@
 #include "configReader.h"
 
-using namespace logger;
 using namespace videoStreamer;
 
 ConfigReader::ConfigReader(std::string config){
@@ -8,14 +7,14 @@ ConfigReader::ConfigReader(std::string config){
 	in.open(config,std::ios::in);
 	if(in.fail()){
 		doesExist = false;
-		LOG_W(LOG_TAG,"config file " + config + " does not exist.");
-		LOG_W(LOG_TAG,"WHATEVER! I DO WHAT I WANT!");
+		std::cout << "config file " << config << " does not exist." << std::endl;
+		std::cout << "WHATEVER! I DO WHAT I WANT!" << std::endl;
 		return;
 	}
-	LOG_E(LOG_TAG,"File exists! Oh Boy!");
+	std::cout << "File exists! Oh Boy!" << std::endl;
 	doesExist = true;
 	std::string line = "";
-	LOG_I(LOG_TAG,line);
+	std::cout << line << std::endl;
 	while(std::getline(in,line)) {
 		std::vector<std::string>  fields = useful::split(line,'=');
 

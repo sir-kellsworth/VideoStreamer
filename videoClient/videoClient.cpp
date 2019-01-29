@@ -23,7 +23,7 @@ VideoClient::VideoClient(std::string configFile/*,bool input*/){
 	ConfigReader reader(configFile);
 	if(!reader.exists()){
         	std::cout << "no config file found using defaults" << std::endl;
-        	server = "192.168.1.183";
+        	server = "192.168.2.2";
 
 	}else{
 	        server = reader.find("server");
@@ -39,7 +39,8 @@ void VideoClient::run(){
 	std::cout << "connecting..." << std::endl;
 	Message init;
 	init.type = INIT;
-	init.length = 0;
+	init.length = 1;
+	init.data = (uint8_t *)malloc(1);
 
 	//initally blocks until the client manages to connect to the server
 	while(!connected){
@@ -47,6 +48,7 @@ void VideoClient::run(){
 		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> span = t2 - t1;
 		control->write(&init,server,CONTROL_PORT);
+		std::cout << "init crc: " << (int)init.crc << std::endl;
 		while(span.count() < 1000){
 			if(control->available()){
 				Message message;
@@ -98,7 +100,8 @@ void VideoClient::run(){
 						std::cout << data << std::endl;
 						Message nack;
 						nack.type = NACK;
-						nack.length = 0;
+						nack.length = 1;
+						nack.data = (uint8_t *)malloc(1);
 						control->write(&nack,server,CONTROL_PORT);
 					}
 				}
@@ -128,14 +131,16 @@ void VideoClient::onMessage(Message message){
 	switch(message.type){
 	case INIT:{
 		responce.type = (MessageType)STATUS;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 		connected = true;
 		std::cout << "Connected to server" << std::endl;
 	break;
 	}
 	case STATUS:{
 		responce.type = ACK;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 		//std::cout << "\n\navailable devices:" << std::endl;
 		//std::cout << std::endl;
 		for(int i = 0; i < message.length;){
@@ -175,14 +180,16 @@ void VideoClient::onMessage(Message message){
 		std::cout << devices[message.data[CAMERA_INDEX]].name << " stream started" << std::endl;
 		startDevice(message.data[CAMERA_INDEX]);
 		responce.type = ACK;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 	break;
 	}
 	case STOPPED:{
 		std::cout << devices[message.data[CAMERA_INDEX]].name << " stream stopped" << std::endl;
 		stopDevice(message.data[CAMERA_INDEX]);
 		responce.type = ACK;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 	break;
 	}
 	};
@@ -372,6 +379,7 @@ bool VideoClient::requestStart(int index){
 		Message message;
 		message.type = (MessageType)START;
 		message.length = 1;
+		message.data = (uint8_t *)malloc(1);
 		message.data[CAMERA_INDEX] = index;
 		control->write(&message,server,CONTROL_PORT);
 	}
@@ -384,6 +392,7 @@ bool VideoClient::requestStop(int index){
 		Message message;
 		message.type = (MessageType)STOP;
 		message.length = 1;
+		message.data = (uint8_t *)malloc(1);
 		message.data[CAMERA_INDEX] = index;
 		control->write(&message,server,CONTROL_PORT);
 
@@ -409,6 +418,7 @@ bool VideoClient::updateSettings(int type,int value){
 	Message message;
 	message.type = (MessageType)SET;
 	message.length = 2;
+	message.data = (uint8_t *)malloc(2);
 	switch(type){
 	case fps:
 		message.data[0] = FRAMERATE;
@@ -513,7 +523,8 @@ bool VideoClient::isConnected(){
 void VideoClient::kill(){
 	Message message;
 	message.type = (MessageType)QUIT;
-	message.length = 0;
+	message.length = 1;
+	message.data = (uint8_t *)malloc(1);
 	control->write(&message,server,CONTROL_PORT);
 	connected = false;
 	//messageThread->join();

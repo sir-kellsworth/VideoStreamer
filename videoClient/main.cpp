@@ -98,7 +98,7 @@ void onCommand(std::string command){
 		client->updateSettings(type,setting);
 	}else if(commandsplit[0] == "status"){
 		//just repeat what devices are available
-		std::cout << "VideoClient","available devices" << std::endl;
+		std::cout << "available devices" << std::endl;
 		for(std::string feed : feeds){
 			std::cout << "\t" << feed << std::endl;
 		}
@@ -117,12 +117,12 @@ int main(int argc,char *argv[]){
 	client->run();
 
 	if(!client->requestList(feeds)){
-		std::cout << "VideoClient","no video streams? server probably isnt setup right" << std::endl;
+		std::cout << "no video streams? server probably isnt setup right" << std::endl;
 		client->kill();
 		exit(-1);
 	}
 
-	std::cout << "VideoClient","available devices" << std::endl;
+	std::cout << "available devices" << std::endl;
 	for(std::string feed : feeds){
 		std::cout << "\t" << feed << std::endl;
 	}

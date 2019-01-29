@@ -89,6 +89,8 @@ void VideoServer::run(){
 				std::cout << "message from " << sender << std::endl;
 				onMessage(&message,sender);
 			}else{
+				std::cout << "crc: " << (int)message.crc << std::endl;
+				std::cout << "bad message maybe type: " << (int)message.type << " " << (int)message.length << std::endl;
 				std::cout << "GOT BAD MESSAGE" << std::endl;
 			}
 		}
@@ -101,7 +103,8 @@ void VideoServer::onMessage(Message *message,std::string sender){
 	switch(message->type){
 	case INIT:{
 		responce.type = INIT;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 		std::cout << "Connected to " << sender << std::endl;
 		connected = true;
 	break;
@@ -113,6 +116,7 @@ void VideoServer::onMessage(Message *message,std::string sender){
 			data += std::to_string(i) + std::to_string(devices[i].port) + std::to_string(devices[i].deviceType) + std::to_string(devices[i].name.length() / 10) + std::to_string(devices[i].name.length() % 10) + devices[i].name;
 		}
 		responce.length = data.length();
+		responce.data = (uint8_t *)malloc(data.length());
 		memcpy(responce.data, data.c_str(), data.length());
 		std::cout << "status" << std::endl;
 	break;
@@ -124,10 +128,12 @@ void VideoServer::onMessage(Message *message,std::string sender){
 			startDevice(&devices[index]);
 			responce.type = (MessageType)STARTED;
 			responce.length = 1;
+			responce.data = (uint8_t *)malloc(1);
 			responce.data[CAMERA_INDEX] = index;
 		}else{
 			responce.type = (MessageType)CAMERA_IN_USE;
-			responce.length = 0;
+			responce.length = 1;
+			responce.data = (uint8_t *)malloc(1);
 		}
 		std::cout << "starting device " << devices[index].name << std::endl;
 	break;
@@ -142,7 +148,8 @@ void VideoServer::onMessage(Message *message,std::string sender){
 			std::cout << "device already stopped" << std::endl;
 		}
 		responce.type = ACK;
-		responce.length = 0;
+		responce.length = 1;
+		responce.data = (uint8_t *)malloc(1);
 	break;
 	}
 	case SET:{
