@@ -226,21 +226,21 @@ void VideoClient::startDevice(int deviceIndex){
 		NULL);
 
 	//amd/intel
-	g_object_set(device.source,"caps",device.caps,NULL);
+	/*g_object_set(device.source,"caps",device.caps,NULL);
 	device.depay = gst_element_factory_make("rtph264depay",NULL);
 	device.decodeBin = gst_element_factory_make("vaapidecodebin",NULL);
 	g_object_set(device.decodeBin,"max-size-buffers",100,NULL);
 	device.overlay = gst_element_factory_make("textoverlay",NULL);
 	g_object_set(device.overlay,"text","lag: 0ms","valignment",2,"halignment",2,"shaded-background",true,NULL);
-	device.sink = gst_element_factory_make("vaapisink",NULL);
+	device.sink = gst_element_factory_make("vaapisink",NULL);*/
 
 	//nvidia
-	/*g_object_set(device.source,"caps",device.caps,NULL);
+	g_object_set(device.source,"caps",device.caps,NULL);
 	device.depay = gst_element_factory_make("rtph264depay",NULL);
 	device.decodeBin = gst_element_factory_make("avdec_h264",NULL);
 	device.overlay = gst_element_factory_make("textoverlay",NULL);
 	g_object_set(device.overlay,"text","lag: 0ms","valignment",2,"halignment",2,"shaded-background",true,NULL);
-	device.sink = gst_element_factory_make("xvimagesink",NULL);*/
+	device.sink = gst_element_factory_make("xvimagesink",NULL);
 
 	if(!device.source || !device.depay || !device.decodeBin || !device.overlay || !device.sink){
 		std::cout << "failed to create elements" << std::endl;

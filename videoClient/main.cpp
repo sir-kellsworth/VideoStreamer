@@ -119,7 +119,7 @@ void onCommand(std::string command){
 }
 
 int main(int argc,char *argv[]){
-	client = new VideoClient("/opt/project-remoteVideo/config/videoClient.conf");
+	client = new VideoClient("config/videoClient.conf");
 	client->run();
 
 	if(!client->requestList(feeds)){

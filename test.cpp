@@ -18,7 +18,7 @@
 #include <iostream>
 
 int main(int argc, char *argv[]){
-	VideoServer *server = new VideoServer("/opt/project-remoteVideo/config/server.conf");
+	VideoServer *server = new VideoServer("config/server.conf");
 
 	std::cout << "made server. now listening" << std::endl;
 	server->run();
