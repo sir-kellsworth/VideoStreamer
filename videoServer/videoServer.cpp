@@ -143,7 +143,6 @@ void VideoServer::onMessage(Message *message,std::string sender){
 		if(devices[index].playing){
 			devices[index].client = sender;
 			stopDevice(&devices[index]);
-			std::cout << "stopping device" << std::endl;
 		}else{
 			std::cout << "device already stopped" << std::endl;
 		}
@@ -211,6 +210,18 @@ void VideoServer::onMessage(Message *message,std::string sender){
 	control->write(&responce,sender,CONTROL_CLIENT_PORT);
 }
 
+/*
+test bin
+gst-launch-1.0 v4l2src device=/dev/video0 ! videoscale method=0 ! videorate drop-only=true ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=30/1 ! x264enc speed-preset=ultrafast tune=zerolatency bitrate=2048 ! rtph264pay config-interval=3 pt=96 ! udpsink host=192.168.2.5 port=4444
+
+maybe nvidia bin
+gst-launch-1.0 nvcamerasrc fpsRange="30.0 30.0" ! 'video/x-raw(memory:NVMM), width=(int)1920, height=(int)1080, format=(string)I420, framerate=(fraction)30/1' ! omxh264enc bitrate=3000000 ! h264parse ! matroskamux name=mux ! tee name=t ! queue ! filesink location=test_file.mkv async=0 t. !  matroskademux name=demux.video_0  !  h264parse ! omxh264dec ! nveglglessink -e
+
+gst-launch-1.0 -e v4l2src device=/dev/video0 ! videoscale method=0 ! videorate drop-only=true ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=30/1 ! x264enc speed-preset=ultrafast tune=zerolatency bitrate=2048 ! tee name=t ! queue ! filesink location=test.mp4 async=0 t. ! queue ! rtph264pay config-interval=3 pt=96 ! udpsink host=192.168.2.5 port=4444
+
+nvidia that works
+gst-launch-1.0 udpsrc port=4444 caps ="application/x-rtp, media=(string)video, framerate=30/1, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! h264parse ! queue ! avdec_h264 ! xvimagesink sync=false async=false
+*/
 void VideoServer::startDevice(videoStreamer::Device *device){
 	std::string binStr;
 	switch(device->deviceType){
@@ -221,7 +232,7 @@ void VideoServer::startDevice(videoStreamer::Device *device){
 		binStr = "autoaudiosrc ! mulawenc ! rtppcmupay ! udpsink host=" + device->client + "  port=" + std::to_string(device->port);
 	break;
 	case VIDEO:
-		binStr = "v4l2src device=" + device->source + " ! videoscale method=0 ! videorate drop-only=true ! videoconvert ! video/x-raw,format=I420,width=" + std::to_string(width) + ",height=" + std::to_string(height) + ",framerate=" + std::to_string(framerate) + "/1 ! x264enc speed-preset=ultrafast tune=zerolatency bitrate=2048 ! rtph264pay config-interval=3 pt=96 ! udpsink host=" + device->client + " port=" + std::to_string(device->port);
+		binStr = "v4l2src device=" + device->source + " ! videoscale method=1 sharpen=1 sharpness=1.5 ! videoconvert ! video/x-raw,format=I420,width=" + std::to_string(width) + ",height=" + std::to_string(height) + ",framerate=" + std::to_string(framerate) + "/1 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay config-interval=3 ! udpsink host=" + device->client + " port=" + std::to_string(device->port);
 	break;
 	};
 	device->pipeline = gst_parse_launch(binStr.c_str(),NULL);
@@ -235,8 +246,6 @@ void VideoServer::startDevice(videoStreamer::Device *device){
 
 void VideoServer::stopDevice(videoStreamer::Device *device){
 	if(device->playing == true){
-		std::cout << "stopping device " << device->name << std::endl;
-		gst_element_set_state(device->pipeline,GST_STATE_NULL);
 		device->client = "";
 		gst_object_unref(device->bus);
 		gst_object_unref(device->pipeline);
@@ -250,44 +259,3 @@ void VideoServer::killAllDevices(){
 		stopDevice(&devices[i]);
 	}
 }
-
-
-/*
-	I used to have the heartbeat within this class but decided it would be better to have the controlling 
-	project take care of this. However, I left in the code if you wanted to see how I would handle it.
-*/
-/*void VideoServer::onHeartbeat(){
-	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-	Message beat;
-	beat.type = HEARTBEAT;
-	beat.length = 0;
-	while(connected){
-		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> span = t2 - t1;
-		if(span.count() > 5000){
-			std::cout << span.count() << std::endl;
-			connected = false;
-			LOG_W(LOG_TAG,"timeout");
-			killAllDevices();
-		}
-
-		if(connected){
-			if(heartbeat->available()){
-				Message back;
-				std::string sender;
-				int port;
-				if(heartbeat->getMessage(&back,sender,port)){
-					heartbeat->write(&beat,sender,HEARTBEAT_CLIENT_PORT);
-				}else{
-					std::cout << "nacking heartbeat" << std::endl;
-					Message nack;
-					nack.type = NACK;
-					nack.length = 0;
-					heartbeat->write(&nack,sender,HEARTBEAT_CLIENT_PORT);
-				}
-				t1 = std::chrono::high_resolution_clock::now();
-			}
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-}*/

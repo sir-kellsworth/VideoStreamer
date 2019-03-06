@@ -30,6 +30,9 @@ bool running = true;
 void onCommand(std::string command){
 	std::vector<std::string> commandsplit = useful::split(command,' ');
 	if(commandsplit[0] == "start"){
+		if(commandsplit.size() == 1){
+			std::cout << "need a device name" << std::endl;
+		}
 		bool found = false;
 		int feedIndex = 0;
 		for(int i = 0; i < feeds.size(); i++){
@@ -96,6 +99,9 @@ void onCommand(std::string command){
 			return;
 		}
 		client->updateSettings(type,setting);
+	}else if(commandsplit[0] == "record"){
+		client->setRecordingLocation("/home/kelly/test.mp4");
+		std::cout << "set recording location to: /home/kelly/test.mp4" << std::endl;
 	}else if(commandsplit[0] == "status"){
 		//just repeat what devices are available
 		std::cout << "available devices" << std::endl;
@@ -128,7 +134,7 @@ int main(int argc,char *argv[]){
 	}
 
 	std::string command;
-	std::cout << "\nCommands: \nstart \t\t\t{device name} \nstop \t\t\t{device name} \nset \tresolution \t{1080 | 720 | 480} \n\tframerate \t{10 | 20 | 30} \nstatus \nexit" << std::endl;
+	std::cout << "\nCommands: \nstart \t\t\t{device name} \nstop \t\t\t{device name} \nset \tresolution \t{1080 | 720 | 480} \n\tframerate \t{10 | 20 | 30} \nrecord \nstatus \nexit" << std::endl;
 	while(running){
 		getline(std::cin,command);
 		onCommand(command);

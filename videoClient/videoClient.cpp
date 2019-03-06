@@ -19,6 +19,9 @@ using namespace videoStreamer;
 
 VideoClient::VideoClient(std::string configFile/*,bool input*/){
 	gst_init(NULL,NULL);
+
+	GstDebugLevel dbglevel = gst_debug_get_default_threshold();
+	dbglevel = GST_LEVEL_INFO;
 	//terminalInput = input;
 	ConfigReader reader(configFile);
 	if(!reader.exists()){
@@ -190,6 +193,7 @@ void VideoClient::onMessage(Message message){
 		responce.type = ACK;
 		responce.length = 1;
 		responce.data = (uint8_t *)malloc(1);
+		stopDevice(message.data[CAMERA_INDEX]);
 	break;
 	}
 	};
@@ -197,103 +201,9 @@ void VideoClient::onMessage(Message message){
 	control->write(&responce,server,CONTROL_PORT);
 }
 
-/*
-	So I had this in here because it was supposed to be a standalone program. But I changed that so
-	it can be used on any project. Anyways, I left in the code as an example but a better one is in the main file
-*/
-/*void VideoClient::onCommand(std::string command){
-	Message message;
-	std::vector<std::string> commandsplit = useful::split(command,' ');
-	if(commandsplit[0] == "start"){
-		bool found = false;
-		message.type = (MessageType)START;
-		message.length = 1;
-		for(int i = 0; i < devices.size(); i++){
-			if(commandsplit[1] == devices[i].name){
-				message.data[CAMERA_INDEX] = i;
-				found = true;
-			}
-		}
-		if(!found){
-			std::cout << "could not find " << commandsplit[1] << std::endl;
-			return;
-		}
-	}else if(commandsplit[0] == "stop"){
-		bool found = false;
-		message.type = (MessageType)STOP;
-		message.length = 1;
-		for(int i = 0; i < devices.size(); i++){
-			if(commandsplit[1] == devices[i].name){
-				std::cout << "stopping " << devices[i].name << " stream" << std::endl;
-				message.data[CAMERA_INDEX] = i;
-				stopDevice(i);
-				found = true;
-			}
-		}
-		if(!found){
-			std::cout << "could not find " << commandsplit[1] << std::endl;
-			return;
-		}
-	}else if(commandsplit[0] == "set"){
-			message.type = (MessageType)SET;
-			message.length = 2;
-		if(commandsplit[1] == "resolution"){
-			if(commandsplit[2] == "1080"){
-				message.data[0] = videoStreamer::RESOLUTION;
-				message.data[1] = HD;
-				std::cout << "setting resolution to 1080p" << std::endl;
-			}else if(commandsplit[2] == "720"){
-				message.data[0] = videoStreamer::RESOLUTION;
-				message.data[1] = HD720;
-				std::cout << "setting resolution to 720p" << std::endl;
-			}else if(commandsplit[2] == "480"){
-				message.data[0] = videoStreamer::RESOLUTION;
-				message.data[1] = SD;
-				std::cout << "setting resolution to 480p" << std::endl;
-			}else{
-				std::cout << "not a resolution" << std::endl;
-				return;
-			}
-		}else if(commandsplit[1] == "framerate"){
-			if(commandsplit[2] == "10"){
-				message.data[0] = FRAMERATE;
-				message.data[1] = F10;
-				framerate = 10;
-				std::cout << "setting framerate to 10fps" << std::endl;
-			}else if(commandsplit[2] == "20"){
-				message.data[0] = FRAMERATE;
-				message.data[1] = F20;
-				framerate = 20;
-				std::cout << "setting framerate to 20fps" << std::endl;
-			}else if(commandsplit[2] == "30"){
-				message.data[0] = FRAMERATE;
-				message.data[1] = F30;
-				framerate = 30;
-				std::cout << "setting framerate to 30fps" << std::endl;
-			}else{
-				std::cout << "not a valid frame rate" << std::endl;
-				return;
-			}
-		}else{
-			std::cout << "nope, not an option" << std::endl;
-			return;
-		}
-	}else if(commandsplit[0] == "status"){
-		message.type = (MessageType)STATUS;
-		message.length = 0;
-		std::cout << "requesting status" << std::endl;
-	}else if(commandsplit[0] == "exit"){
-		message.type = (MessageType)QUIT;
-		message.length = 0;
-		control->write(&message,server,CONTROL_PORT);
-		exit(0);
-	}else{
-		std::cout << "not recognized brah" << std::endl;
-		return;
-	}
-
-	control->write(&message,server,CONTROL_PORT);
-}*/
+void VideoClient::setRecordingLocation(std::string loc){
+	recordingLocation = loc;
+}
 
 void VideoClient::startDevice(int deviceIndex){
 	ClientDevice &device = devices[deviceIndex];
@@ -306,9 +216,6 @@ void VideoClient::startDevice(int deviceIndex){
 		device.playing = true;
 		return;
 	}
-
-	/*std::string binStr = "udpsrc port=" + std::to_string(device.port) + " caps = \"application/x-rtp, media=(string)video, framerate=30/1, encoding-name=(string)H264, payload=(int)96\" ! rtph264depay ! vaapidecodebin threads=8 ! textoverlay text=\"lag: 0ms\" valignment=top halignment=left shaded-background=true ! vaapisink"; //autovideosink
-	device.pipeline = gst_parse_launch(binStr.c_str(),NULL);*/
 	device.source = gst_element_factory_make("udpsrc",NULL);
 	g_object_set(G_OBJECT(device.source),"port",device.port,NULL);
 	device.caps = gst_caps_new_simple("application/x-rtp",
@@ -317,14 +224,23 @@ void VideoClient::startDevice(int deviceIndex){
 		"encoding-name",G_TYPE_STRING,"H264",
 		"payload",G_TYPE_INT,"96",
 		NULL);
+
+	//amd/intel
 	g_object_set(device.source,"caps",device.caps,NULL);
-	//g_object_set(G_OBJECT(device.source),"caps","application/x-rtp, media=(string)video, framerate=30/1, encoding-name=(string)H264, payload=(int)96",NULL);
 	device.depay = gst_element_factory_make("rtph264depay",NULL);
 	device.decodeBin = gst_element_factory_make("vaapidecodebin",NULL);
 	g_object_set(device.decodeBin,"max-size-buffers",100,NULL);
 	device.overlay = gst_element_factory_make("textoverlay",NULL);
 	g_object_set(device.overlay,"text","lag: 0ms","valignment",2,"halignment",2,"shaded-background",true,NULL);
 	device.sink = gst_element_factory_make("vaapisink",NULL);
+
+	//nvidia
+	/*g_object_set(device.source,"caps",device.caps,NULL);
+	device.depay = gst_element_factory_make("rtph264depay",NULL);
+	device.decodeBin = gst_element_factory_make("avdec_h264",NULL);
+	device.overlay = gst_element_factory_make("textoverlay",NULL);
+	g_object_set(device.overlay,"text","lag: 0ms","valignment",2,"halignment",2,"shaded-background",true,NULL);
+	device.sink = gst_element_factory_make("xvimagesink",NULL);*/
 
 	if(!device.source || !device.depay || !device.decodeBin || !device.overlay || !device.sink){
 		std::cout << "failed to create elements" << std::endl;
@@ -341,16 +257,52 @@ void VideoClient::startDevice(int deviceIndex){
 		gst_bin_add(GST_BIN(device.pipeline),device.displays[i]);
 	}
 
-	//FIXME: figure out how to link more items...
-	if(!gst_element_link_many(device.source, device.depay, device.decodeBin, device.overlay, device.sink, NULL)){
-		std::cout << "failed to link devices" << std::endl;
-		exit(-1);
-	}
-	for(int i = 0; i < device.displays.size(); i++){
-		if(!gst_element_link(device.source,device.displays[i])){
-		std::cout << "failed to link device at: " << i << std::endl;
-		exit(-1);
-	}
+	/*
+		testbin
+		gst-launch-1.0 udpsrc port=4444 caps ="application/x-rtp, media=(string)video, framerate=30/1, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! vaapidecodebin threads=8 ! x264enc ! filesink location=test.mp4
+		maybe need a parser? h264parse
+
+		gst-launch-1.0 udpsrc port=4444 caps ="application/x-rtp, media=(string)video, framerate=30/1, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! vaapidecodebin threads=8 ! vaapisink
+
+		gst-launch-1.0 -e v4l2src device=/dev/video0 ! videoscale method=0 ! videorate drop-only=true ! videoconvert ! video/x-raw,format=I420,width=1920,height=1080,framerate=30/1 ! tee name=t ! queue ! x264enc ! filesink location=test.mp4 async=0 t. ! queue ! vaapisink
+	*/
+	if(recordingLocation != ""){
+		device.tee = gst_element_factory_make("tee","tee");
+		device.recordingDecodeBin = gst_element_factory_make("vaapidecodebin",NULL);
+		device.recordingEncoder = gst_element_factory_make("x264enc",NULL);
+		device.displayQueue = gst_element_factory_make("queue",NULL);
+		device.recordQueue = gst_element_factory_make("queue",NULL);
+		device.recordingMux = gst_element_factory_make("mp4mux",NULL);
+		device.recordingSink = gst_element_factory_make("filesink",NULL);
+		g_object_set(device.recordingSink,"location","test.mp4", "async", "0",NULL);
+
+		if(!device.recordingSink || !device.recordingDecodeBin || !device.recordingEncoder || !device.tee || !device.recordingMux || !device.displayQueue || !device.recordQueue){
+			std::cout << "failed to create recording sink" << std::endl;
+		}
+
+		//if recording location, do recording pipelines
+		gst_bin_add_many(GST_BIN(device.pipeline), device.tee, device.displayQueue, device.recordQueue, device.recordingDecodeBin, device.recordingEncoder, device.recordingMux, device.recordingSink, NULL);
+		if(!gst_element_link_many(device.source, device.depay, device.tee, NULL)){
+			std::cout << "failed to link tee sink" << std::endl;
+		}
+		if(!gst_element_link_many(device.tee, device.recordQueue, device.recordingDecodeBin, device.recordingEncoder, device.recordingMux, device.recordingSink, NULL)){
+			std::cout << "failed to link file sink" << std::endl;
+		}
+		if(!gst_element_link_many(device.tee, device.displayQueue, device.decodeBin, device.overlay, device.sink, NULL)){
+			std::cout << "failed to link devices" << std::endl;
+			exit(-1);
+		}
+	}else{
+		if(!gst_element_link_many(device.source, device.depay, device.decodeBin, device.overlay, device.sink, NULL)){
+			std::cout << "failed to link devices" << std::endl;
+			exit(-1);
+		}
+		for(int i = 0; i < device.displays.size(); i++){
+			if(!gst_element_link(device.source,device.displays[i])){
+				std::cout << "failed to link device at: " << i << std::endl;
+				exit(-1);
+			}
+		}
 	}
 
 	device.bus = gst_element_get_bus(device.pipeline);
@@ -366,18 +318,13 @@ void VideoClient::stopDevice(int deviceIndex){
 		gst_element_set_state(device.pipeline,GST_STATE_NULL);
 		gst_object_unref(device.pipeline);
 		gst_object_unref(device.bus);
-		//gst_object_unref(device.source);
-		//gst_object_unref(device.depay);
-		//gst_object_unref(device.decodeBin);
-		//gst_object_unref(device.overlay);
-		//gst_object_unref(device.sink);
 	}
 }
 
 bool VideoClient::requestStart(int index){
 	if(index < devices.size()){
 		Message message;
-		message.type = (MessageType)START;
+		message.type = START;
 		message.length = 1;
 		message.data = (uint8_t *)malloc(1);
 		message.data[CAMERA_INDEX] = index;
@@ -390,13 +337,13 @@ bool VideoClient::requestStart(int index){
 bool VideoClient::requestStop(int index){
 	if(index < devices.size()){
 		Message message;
-		message.type = (MessageType)STOP;
+		message.type = STOP;
 		message.length = 1;
 		message.data = (uint8_t *)malloc(1);
 		message.data[CAMERA_INDEX] = index;
 		control->write(&message,server,CONTROL_PORT);
 
-		stopDevice(index);
+		//stopDevice(index);
 	}
 
 	return false;
@@ -480,45 +427,6 @@ void VideoClient::update(int deviceIndex,int handler,std::string message){
 bool VideoClient::isConnected(){
 	return connected;
 }
-
-/*
-	I used to have the heartbeat within this class but decided it would be better to have the controlling 
-	project take care of this. However, I left in the code if you wanted to see how I would handle it.
-*/
-/*void VideoClient::onHeartbeat(){
-	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-	Message beat;
-	beat.type = HEARTBEAT;
-	beat.length = 0;
-	heartbeat->write(&beat,server,HEARTBEAT_PORT);
-	while(connected){
-		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> span = t2 - t1;
-		if(span.count() > 5000){
-			connected = false;
-			std::cout << "total time: " << span.count() << std::endl;
-			LOG_W(LOG_TAG,"timeout");
-			return;
-		}
-
-		if(heartbeat->available()){
-			Message back;
-			std::string sender;
-			int port;
-			if(heartbeat->getMessage(&back,sender,port)){
-				heartbeat->write(&beat,server,HEARTBEAT_PORT);
-			}else{
-				std::cout << "nacking heartbeat" << std::endl;
-				Message nack;
-				nack.type = NACK;
-				nack.length = 0;
-				heartbeat->write(&nack,server,HEARTBEAT_PORT);
-			}
-			t1 = std::chrono::high_resolution_clock::now();
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-}*/
 
 void VideoClient::kill(){
 	Message message;

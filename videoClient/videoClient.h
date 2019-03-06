@@ -54,6 +54,10 @@ public:
 	//if you do not want to use the terminal input, this method returns weather or not there are videos you can stream from.
 	//if there are, then it copies the list for you.
 	bool requestList(std::vector<std::string> &list);
+	//sets a location for saving the stream to a file
+	//you need to call this everytime before starting a stream or it wont record
+	//leave it as blank to not record
+	void setRecordingLocation(std::string loc);
 	//starts the video of the device index from the list that you requested. So if you want to start the third stream from the requestedList, you would call requestStart(3)
 	//this does not block
 	//returns if this is a valid index
@@ -91,6 +95,7 @@ private:
 	bool running;
 	int framerate = 30;
 	bool terminalInput = true;
+	std::string recordingLocation;
 
 	const bool DEBUG = true;
 };

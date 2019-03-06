@@ -81,15 +81,24 @@ struct ClientDevice{
 	GstBus *bus;
 	GstElement *source;
 	GstCaps *caps;
+	GstElement *displayQueue;
 	GstElement *depay;
 	GstElement *decodeBin;
 	GstElement *overlay;
 	GstElement *sink;
+
+	GstElement *tee;
+	GstElement *recordQueue;
+	GstElement *recordingDecodeBin;
+	GstElement *recordingEncoder;
+	GstElement *recordingMux;
+	GstElement *recordingSink;
 	std::vector<GstElement *> displays;
 	unsigned int lastTimestamp;
 	std::string server;
 	std::string name;
 	bool playing;
+	bool recording;
 	int port;
 	DeviceType deviceType;
 };
